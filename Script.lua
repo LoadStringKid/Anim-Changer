@@ -1,47 +1,68 @@
---// Spin Hat Script - 5 studs/second
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+-- === SETTINGS ===
+local targetPlayerName = "LSPLASH0921" -- ?? CHANGE THIS
+local orbitRadius = 10                      -- Distance from player
+local orbitSpeed = math.rad(90)            -- Orbit speed (degrees/sec converted to radians)
 
--- Find first hat accessory
-local hat = nil
-for _, accessory in ipairs(character:GetChildren()) do
-	if accessory:IsA("Accessory") then
-		hat = accessory
-		break
+-- === MAIN ===
+
+local function findUnanchoredPart()
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and not obj.Anchored then
+			return obj
+		end
 	end
+	return nil
 end
 
-if not hat then
-	warn("No hat found!")
-	return
+local function orbitPartAroundPlayer(part, character)
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	local angle = 0
+
+	RunService.Heartbeat:Connect(function(dt)
+		if not part or not part.Parent or not root.Parent then return end
+
+		angle = angle + orbitSpeed * dt
+		local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * orbitRadius
+		local newPos = root.Position + offset
+		part.Position = newPos
+	end)
 end
 
--- Get the hat's handle
-local handle = hat:FindFirstChild("Handle")
-if not handle then
-	warn("Hat has no handle!")
-	return
-end
-
--- Remove default attachment welds so we can move it freely
-for _, obj in ipairs(handle:GetChildren()) do
-	if obj:IsA("Weld") or obj:IsA("Motor6D") then
-		obj:Destroy()
+local function onCharacterAdded(player, character)
+	local part = findUnanchoredPart()
+	if not part then
+		warn("No unanchored part found in the workspace.")
+		return
 	end
+
+	orbitPartAroundPlayer(part, character)
 end
 
--- Spin settings
-local radius = 5
-local speedStudsPerSecond = 5
-local angularSpeed = speedStudsPerSecond / radius -- radians/sec
-local angle = 0
-
--- Move the hat in a loop
-RunService.Heartbeat:Connect(function(deltaTime)
-	angle = angle + angularSpeed * deltaTime
-	local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-	handle.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(offset + Vector3.new(0, 2, 0))
+-- Track the target player
+Players.PlayerAdded:Connect(function(player)
+	if player.Name == targetPlayerName then
+		player.CharacterAdded:Connect(function(character)
+			onCharacterAdded(player, character)
+		end)
+		if player.Character then
+			onCharacterAdded(player, player.Character)
+		end
+	end
 end)
+
+-- If the player is already in the game
+for _, player in ipairs(Players:GetPlayers()) do
+	if player.Name == targetPlayerName then
+		if player.Character then
+			onCharacterAdded(player, player.Character)
+		end
+		player.CharacterAdded:Connect(function(character)
+			onCharacterAdded(player, character)
+		end)
+	end
+end
