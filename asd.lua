@@ -1,7 +1,7 @@
 -- SpinAroundPlayer.lua
 -- Place this Script in Workspace
 
-local targetName = "LSPLASH0921" -- The player you want to orbit around
+local targetName = "LSPLASH09211" -- The player you want to orbit around
 local spinSpeed = 2 -- Radians per second
 local radius = 10 -- Distance from target
 local heightOffset = 3 -- Height above target
